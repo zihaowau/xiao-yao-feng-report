@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>逍遥峰外呼分析报告 - J&T极兔速递</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f0f2f5; color: #333; font-size: 14px; overflow: hidden; }
+.header { height: 56px; background: #1a1a1a; display: flex; align-items: center; padding: 0 20px; position: fixed; top: 0; left: 0; right: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.logo { display: flex; align-items: center; color: #fff; font-size: 18px; font-weight: bold; }
+.logo-icon { width: 32px; height: 32px; background: #e60012; border-radius: 4px; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-size: 12px; color: #fff; }
+.header-menu { display: flex; margin-left: 40px; flex: 1; }
+.header-menu-item { padding: 0 20px; height: 56px; line-height: 56px; color: #ccc; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+.header-menu-item:hover, .header-menu-item.active { color: #fff; background: rgba(255,255,255,0.05); }
+.header-menu-item.active { border-bottom: 2px solid #e60012; }
+.header-right { display: flex; align-items: center; gap: 15px; color: #fff; }
+.user-avatar { width: 28px; height: 28px; border-radius: 50%; background: #e60012; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+.sidebar { width: 200px; background: #2c2c2c; position: fixed; top: 56px; left: 0; bottom: 0; overflow-y: auto; z-index: 999; }
+.sidebar-menu { padding: 10px 0; }
+.sidebar-title { padding: 15px 20px 8px; color: #999; font-size: 12px; text-transform: uppercase; }
+.sidebar-item { display: flex; align-items: center; padding: 12px 20px; color: #ccc; cursor: pointer; transition: all 0.3s; position: relative; }
+.sidebar-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+.sidebar-item.active { background: rgba(230,0,18,0.1); color: #fff; }
+.sidebar-item.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: #e60012; }
+.sidebar-item i { width: 20px; margin-right: 10px; text-align: center; }
+.main-content { margin-left: 200px; margin-top: 56px; padding: 20px; min-height: calc(100vh - 56px); overflow-y: auto; height: calc(100vh - 56px); }
+.page-title { font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #1a1a1a; display: flex; align-items: center; gap: 10px; }
+.page-title .tag { font-size: 12px; padding: 2px 8px; background: #e60012; color: #fff; border-radius: 3px; font-weight: normal; }
+.card { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.card-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+.stat-card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-left: 4px solid #e60012; }
+.stat-card.blue { border-left-color: #1890ff; }
+.stat-card.green { border-left-color: #52c41a; }
+.stat-card.orange { border-left-color: #faad14; }
+.stat-label { color: #666; font-size: 13px; margin-bottom: 8px; }
+.stat-value { font-size: 28px; font-weight: bold; color: #1a1a1a; }
+.stat-sub { font-size: 12px; color: #999; margin-top: 5px; }
+.btn { display: inline-flex; align-items: center; gap: 5px; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; border: none; transition: all 0.3s; }
+.btn-primary { background: #e60012; color: #fff; }
+.btn-primary:hover { background: #c4000f; }
+.btn-default { background: #fff; color: #333; border: 1px solid #d9d9d9; }
+.btn-default:hover { border-color: #e60012; color: #e60012; }
+.btn-success { background: #52c41a; color: #fff; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+th { background: #fafafa; font-weight: 600; color: #1a1a1a; position: sticky; top: 0; }
+tr:hover { background: #fafafa; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+.badge-success { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+.badge-danger { background: #fff1f0; color: #f5222d; border: 1px solid #ffa39e; }
+.badge-warning { background: #fffbe6; color: #faad14; border: 1px solid #ffe58f; }
+.filter-bar { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
+.filter-item { display: flex; align-items: center; gap: 8px; }
+.filter-item label { font-size: 13px; color: #666; white-space: nowrap; }
+.filter-item input, .filter-item select { padding: 6px 10px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; outline: none; }
+.filter-item input:focus, .filter-item select:focus { border-color: #e60012; }
+.pagination { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #f0f0f0; }
+.pagination button { padding: 6px 12px; border: 1px solid #d9d9d9; background: #fff; cursor: pointer; border-radius: 4px; font-size: 13px; }
+.pagination button:hover:not(:disabled) { border-color: #e60012; color: #e60012; }
+.pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+.pagination button.active { background: #e60012; color: #fff; border-color: #e60012; }
+.page-info { font-size: 13px; color: #666; }
+.upload-zone { border: 2px dashed #d9d9d9; border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s; background: #fafafa; }
+.upload-zone:hover { border-color: #e60012; background: #fff1f0; }
+.upload-zone.dragover { border-color: #e60012; background: #fff1f0; }
+.upload-icon { font-size: 48px; color: #d9d9d9; margin-bottom: 15px; }
+.upload-zone:hover .upload-icon { color: #e60012; }
+.upload-text { color: #666; font-size: 14px; }
+.upload-text span { color: #e60012; cursor: pointer; }
+.paste-area { width: 100%; min-height: 200px; padding: 15px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 13px; font-family: monospace; resize: vertical; margin-top: 15px; }
+.paste-area:focus { border-color: #e60012; outline: none; }
+.analysis-section { margin-bottom: 20px; }
+.analysis-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; color: #1a1a1a; display: flex; align-items: center; gap: 8px; }
+.analysis-title .icon { width: 24px; height: 24px; background: #e60012; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+.analysis-content { background: #f8f9fa; padding: 15px; border-radius: 6px; font-size: 14px; line-height: 1.8; }
+.analysis-list { list-style: none; padding: 0; }
+.analysis-list li { padding: 8px 0; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; }
+.analysis-list li:last-child { border-bottom: none; }
+.rank { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; font-weight: bold; margin-right: 8px; }
+.rank-1 { background: #fff1f0; color: #e60012; }
+.rank-2 { background: #fff7e6; color: #fa8c16; }
+.rank-3 { background: #f6ffed; color: #52c41a; }
+.chart-container { position: relative; height: 300px; margin: 20px 0; }
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.report-editor { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.editor-panel { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.editor-panel h3 { font-size: 16px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e60012; }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; font-size: 13px; color: #666; margin-bottom: 5px; }
+.form-group input, .form-group textarea, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; outline: none; }
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #e60012; }
+.form-group textarea { min-height: 80px; resize: vertical; }
+.report-preview { background: #fff; border-radius: 8px; padding: 30px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); min-height: 600px; }
+.report-header { text-align: center; border-bottom: 3px solid #e60012; padding-bottom: 20px; margin-bottom: 30px; }
+.report-header h1 { font-size: 24px; color: #1a1a1a; margin-bottom: 10px; }
+.report-header .sub { color: #666; font-size: 14px; }
+.report-section { margin-bottom: 25px; }
+.report-section h2 { font-size: 16px; color: #e60012; border-left: 4px solid #e60012; padding-left: 10px; margin-bottom: 12px; }
+.report-section p { font-size: 14px; line-height: 1.8; color: #333; text-indent: 2em; }
+.report-section ul { padding-left: 2em; line-height: 1.8; }
+.report-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 15px 0; }
+.report-metric { text-align: center; padding: 15px; background: #f8f9fa; border-radius: 6px; }
+.report-metric .num { font-size: 28px; font-weight: bold; color: #e60012; }
+.report-metric .label { font-size: 13px; color: #666; margin-top: 5px; }
+.hidden { display: none !important; }
+.empty-state { text-align: center; padding: 60px 20px; color: #999; }
+.empty-state .icon { font-size: 64px; margin-bottom: 20px; }
+@media print { .header, .sidebar, .btn-group { display: none !important; } .main-content { margin: 0; padding: 0; } .report-preview { box-shadow: none; } }
+</style>
+</head>
+<body>
+<header class="header">
+<div class="logo"><div class="logo-icon">J&amp;T</div><span>极兔速递 · 逍遥峰外呼分析</span></div>
+<div class="header-menu">
+<div class="header-menu-item active" data-menu="data">数据管理</div>
+<div class="header-menu-item" data-menu="analysis">AI分析</div>
+<div class="header-menu-item" data-menu="report">报告生成</div>
+</div>
+<div class="header-right"><div class="user"><div class="user-avatar">管</div><span>管理员</span></div></div>
+</header>
+<aside class="sidebar">
+<div class="sidebar-menu">
+<div class="sidebar-title">外呼运营</div>
+<div class="sidebar-item active" data-page="import"><i>📥</i> 数据导入</div>
+<div class="sidebar-item" data-page="dashboard"><i>📊</i> 数据看板</div>
+<div class="sidebar-item" data-page="analysis"><i>🤖</i> AI智能分析</div>
+<div class="sidebar-item" data-page="report"><i>📄</i> 报告生成</div>
+<div class="sidebar-title">系统</div>
+<div class="sidebar-item" data-page="template"><i>📋</i> 模板下载</div>
+</div>
+</aside>
+<main class="main-content" id="mainContent"></main>
+<script>
+let appData = { rawData: [], filteredData: [], pageSize: 20, currentPage: 1, sortField: null, sortOrder: 'asc', filters: {}, reportConfig: { period: '', problem: '', strategy: '', target: '' } };
+let charts = {};
+
+const pages = {
+import: '<div class="page-title">📥 数据导入 <span class="tag">支持Excel/CSV/粘贴</span></div><div class="card"><div class="card-title">上传外呼明细数据</div><div class="upload-zone" id="uploadZone"><div class="upload-icon">📁</div><div class="upload-text">拖拽文件到此处，或 <span>点击上传</span><br><small style="color:#999">支持 .xlsx, .xls, .csv 格式</small></div><input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none"></div></div><div class="card"><div class="card-title">或直接粘贴数据（Tab分隔）</div><textarea class="paste-area" id="pasteArea" placeholder="日期\t会话ID\t运单号\t工号\t回访结果\t进线时间\t问题类型\t会话中介\t回访手机号\n2026/5/16\t923508025774409526\tJT0023512209991\t\t解决\t2026/5/16 16:30\t时效内催件\t否\t158538995529"></textarea><div style="margin-top:10px"><button class="btn btn-primary" onclick="parsePastedData()">解析粘贴数据</button><button class="btn btn-default" onclick="loadDemoData()">加载示例数据</button></div></div>',
+
+dashboard: `<div class="page-title">📊 外呼数据看板</div><div class="stats-grid" id="statsGrid"><div class="stat-card"><div class="stat-label">总外呼数</div><div class="stat-value" id="statTotal">0</div><div class="stat-sub">本次导入数据总量</div></div><div class="stat-card blue"><div class="stat-label">外呼接通量</div><div class="stat-value" id="statConnected">0</div><div class="stat-sub" id="statConnectRate">接通率 0%</div></div><div class="stat-card green"><div class="stat-label">已解决数</div><div class="stat-value" id="statResolved">0</div><div class="stat-sub" id="statResolveRate">解决率 0%</div></div><div class="stat-card orange"><div class="stat-label">再次进线数</div><div class="stat-value" id="statRepeat">0</div><div class="stat-sub" id="statRepeatRate">重复进线率 0%</div></div></div><div class="card"><div class="card-title">外呼明细列表<div><button class="btn btn-default" onclick="exportData()">导出数据</button></div></div><div class="filter-bar" id="filterBar"><div class="filter-item"><label>问题类型</label><select id="filterType" onchange="applyFilter()"><option value="">全部</option></select></div><div class="filter-item"><label>回访结果</label><select id="filterResult" onchange="applyFilter()"><option value="">全部</option><option value="解决">解决</option><option value="未解决">未解决</option></select></div><div class="filter-item"><label>会话中介</label><select id="filterAgent" onchange="applyFilter()"><option value="">全部</option><option value="是">是</option><option value="否">否</option></select></div><div class="filter-item"><label>日期</label><input type="date" id="filterDate" onchange="applyFilter()"></div><div class="filter-item"><button class="btn btn-default" onclick="resetFilter()">重置筛选</button></div></div><div class="table-wrap"><table id="dataTable"><thead><tr><th onclick="sortTable('日期')">日期 ↕</th><th onclick="sortTable('会话ID')">会话ID ↕</th><th onclick="sortTable('运单号')">运单号 ↕</th><th onclick="sortTable('工号')">工号 ↕</th><th onclick="sortTable('回访结果')">回访结果 ↕</th><th onclick="sortTable('进线时间')">进线时间 ↕</th><th onclick="sortTable('问题类型')">问题类型 ↕</th><th onclick="sortTable('会话中介')">会话中介 ↕</th><th onclick="sortTable('回访手机号')">回访手机号 ↕</th></tr></thead><tbody id="tableBody"></tbody></table></div><div class="pagination" id="pagination"></div></div>`,
+
+analysis: '<div class="page-title">🤖 AI智能分析</div><div class="chart-row"><div class="card"><div class="card-title">问题类型分布</div><div class="chart-container"><canvas id="typeChart"></canvas></div></div><div class="card"><div class="card-title">回访结果占比</div><div class="chart-container"><canvas id="resultChart"></canvas></div></div></div><div class="card"><div class="card-title">外呼后再次进线分析</div><div class="analysis-section"><div class="analysis-title"><div class="icon">1</div> 问题类型TOP榜（导致重复进线）</div><div class="analysis-content"><ul class="analysis-list" id="repeatTypeList"></ul></div></div><div class="analysis-section"><div class="analysis-title"><div class="icon">2</div> 客服回访效果排名</div><div class="analysis-content"><ul class="analysis-list" id="agentEffectList"></ul></div></div><div class="analysis-section"><div class="analysis-title"><div class="icon">3</div> AI洞察建议</div><div class="analysis-content" id="aiInsights"></div></div></div><div class="card"><div class="card-title">每日外呼趋势</div><div class="chart-container" style="height:350px"><canvas id="trendChart"></canvas></div></div>',
+
+report: '<div class="page-title">📄 分析报告生成</div><div class="report-editor"><div class="editor-panel"><h3>📝 编辑报告内容</h3><div class="form-group"><label>分析周期</label><input type="text" id="rPeriod" placeholder="如：2026.06.16 - 2026.06.22"></div><div class="form-group"><label>当前问题（AI已预填，可编辑）</label><textarea id="rProblem" placeholder="描述当前外呼运营中存在的问题..."></textarea></div><div class="form-group"><label>改进策略</label><textarea id="rStrategy" placeholder="输入改进措施..."></textarea></div><div class="form-group"><label>下周目标</label><textarea id="rTarget" placeholder="输入下周目标..."></textarea></div><div class="btn-group" style="display:flex;gap:10px;margin-top:20px"><button class="btn btn-primary" onclick="generateReport()">生成报告</button><button class="btn btn-success" onclick="exportReport()">导出HTML</button><button class="btn btn-default" onclick="printReport()">打印报告</button></div></div><div class="editor-panel" style="background:#f0f2f5"><h3>📋 报告预览</h3><div class="report-preview" id="reportPreview"><div class="empty-state"><div class="icon">📄</div><p>点击"生成报告"预览内容</p></div></div></div></div>',
+
+template: '<div class="page-title">📋 数据模板</div><div class="card"><div class="card-title">标准数据格式说明</div><p style="margin-bottom:15px">请确保导入的数据包含以下字段（顺序可调整）：</p><table><thead><tr><th>字段名</th><th>说明</th><th>示例</th></tr></thead><tbody><tr><td>日期</td><td>外呼日期</td><td>2026/5/16</td></tr><tr><td>会话ID</td><td>唯一标识</td><td>923508025774409526</td></tr><tr><td>运单号</td><td>快递运单号</td><td>JT0023512209991</td></tr><tr><td>工号</td><td>客服工号</td><td>10001</td></tr><tr><td>回访结果</td><td>解决/未解决</td><td>解决</td></tr><tr><td>进线时间</td><td>用户进线时间</td><td>2026/5/16 16:30</td></tr><tr><td>问题类型</td><td>问题分类</td><td>时效内催件</td></tr><tr><td>会话中介</td><td>是否介入</td><td>是/否</td></tr><tr><td>回访手机号</td><td>用户手机号</td><td>158538995529</td></tr></tbody></table><div style="margin-top:20px"><button class="btn btn-primary" onclick="downloadTemplate()">下载Excel模板</button></div></div>'
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+renderPage('import');
+initSidebar();
+});
+
+function renderPage(pageName) {
+const main = document.getElementById('mainContent');
+main.innerHTML = pages[pageName] || pages.import;
+document.querySelectorAll('.sidebar-item').forEach(item => { item.classList.toggle('active', item.dataset.page === pageName); });
+if (pageName === 'dashboard') { initDashboard(); }
+else if (pageName === 'analysis') { initAnalysis(); }
+else if (pageName === 'report') { initReport(); }
+else if (pageName === 'import') { setTimeout(initUpload, 0); }
+}
+
+function initSidebar() {
+document.querySelectorAll('.sidebar-item').forEach(item => { item.addEventListener('click', () => renderPage(item.dataset.page)); });
+document.querySelectorAll('.header-menu-item').forEach(item => { item.addEventListener('click', () => { document.querySelectorAll('.header-menu-item').forEach(i => i.classList.remove('active')); item.classList.add('active'); const menu = item.dataset.menu; if (menu === 'data') renderPage('dashboard'); else if (menu === 'analysis') renderPage('analysis'); else if (menu === 'report') renderPage('report'); }); });
+}
+
+function initUpload() {
+const zone = document.getElementById('uploadZone');
+const input = document.getElementById('fileInput');
+if (!zone) return;
+zone.addEventListener('click', () => input.click());
+zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', (e) => { e.preventDefault(); zone.classList.remove('dragover'); if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+input.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
+}
+
+function handleFile(file) {
+const reader = new FileReader();
+reader.onload = (e) => {
+const data = new Uint8Array(e.target.result);
+const workbook = XLSX.read(data, { type: 'array' });
+const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+processImportedData(jsonData);
+};
+reader.readAsArrayBuffer(file);
+}
+
+function parsePastedData() {
+const text = document.getElementById('pasteArea').value.trim();
+if (!text) { alert('请先粘贴数据'); return; }
+const rows = text.split('\n').map(row => row.split('\t'));
+processImportedData(rows);
+}
+
+function processImportedData(rows) {
+if (!rows || rows.length < 2) { alert('数据格式不正确'); return; }
+const headers = rows[0].map(h => String(h).trim());
+const data = [];
+for (let i = 1; i < rows.length; i++) {
+const row = rows[i];
+if (row.length < 2) continue;
+const item = {};
+headers.forEach((h, idx) => { item[h] = row[idx] !== undefined ? String(row[idx]).trim() : ''; });
+data.push(item);
+}
+appData.rawData = data;
+appData.filteredData = [...data];
+alert('成功导入 ' + data.length + ' 条数据！');
+renderPage('dashboard');
+}
+
+function loadDemoData() {
+const demoData = [
+['日期','会话ID','运单号','工号','回访结果','进线时间','问题类型','会话中介','回访手机号'],
+['2026/5/16','923508025774409526','JT0023512209991','1001','解决','2026/5/16 16:30','时效内催件','否','158538995529'],
+['2026/5/16','923464269364823310','JT3162819856684','1002','解决','2026/5/16 13:36','时效内催件','否','17201754357'],
+['2026/5/16','923459604430565150','JT4295824931367','1003','未解决','2026/5/16 13:17','物流轨迹异常','是','15802431255'],
+['2026/5/16','922728136598637446','JT4295826647561','1001','解决','2026/5/14 12:51','时效内催件','否','18976666566'],
+['2026/5/16','923541008799598366','JT42958269216542','1004','解决','2026/5/16 18:41','时效内催件','是','17394830503'],
+['2026/5/16','923557106678541089','JT4295827331809','1002','解决','2026/5/16 17:46','时效内催件','否','15356849023'],
+['2026/5/16','923466494992549418','JT42958276656835','1003','未解决','2026/5/16 13:45','催揽收','否','19021473984'],
+['2026/5/16','9234562166901958149','JT42958281350061','1001','解决','2026/5/16 12:48','时效内催件','否','176153251496'],
+['2026/5/16','9234583444780557840','JT42958282739648','1004','解决','2026/5/16 12:53','时效内催件','否','13844285262'],
+['2026/5/16','9234854463658341452','JT4295828723046','1002','未解决','2026/5/16 13:01','签收未收到','否','18822041914'],
+['2026/5/16','923461106855413778','JT42958301613699','1003','解决','2026/5/16 13:23','时效内催件','否','15140563411'],
+['2026/5/16','923445213844834086','JT42958301742712','1001','解决','2026/5/16 12:26','时效内催件','是','13664126486'],
+['2026/5/16','923450176503338862','JT42958303813848','1004','解决','2026/5/16 12:40','时效内催件','否','18676173627'],
+['2026/5/16','923476065298006027','JT42958308209933','1002','未解决','2026/5/16 14:23','改地址','否','13773822948'],
+['2026/5/16','923449779806111511','JT4295830418779','1003','解决','2026/5/16 12:38','时效内催件','否','15508846758'],
+['2026/5/16','923464955884308030','JT42958305035951','1001','解决','2026/5/16 13:39','时效内催件','否','15750465151'],
+['2026/5/16','923460696233051678','JT42958306322699','1004','解决','2026/5/16 13:22','时效内催件','否','17793252805'],
+['2026/5/17','923446868090914055','JT42958307223839','1002','解决','2026/5/17 12:31','时效内催件','否','15140143903'],
+['2026/5/17','923460151661397299','JT42958305923489','1003','解决','2026/5/17 13:19','时效内催件','否','15176110565'],
+['2026/5/17','923459445617428527','JT42958310495471','1001','未解决','2026/5/17 13:17','物流轨迹异常','否','18903711544'],
+['2026/5/17','9234580444205555816','JT42958312615180','1004','解决','2026/5/17 13:11','时效内催件','否','18744902963'],
+['2026/5/17','923456206066033818','JT42958313483339','1002','解决','2026/5/17 10:17','时效内催件','否','18903568502'],
+['2026/5/17','923456416677304733','JT42958315539041','1003','解决','2026/5/17 11:17','时效内催件','否','15517157655'],
+['2026/5/17','923464046649964385','JT42958316827499','1001','未解决','2026/5/17 11:48','破损','否','18515897652'],
+['2026/5/17','923457106482544253','JT42958318335369','1004','解决','2026/5/17 13:16','时效内催件','否','15838367896'],
+['2026/5/17','923456406676308030','JT42958319850991','1002','解决','2026/5/17 13:28','时效内催件','否','18735318805'],
+['2026/5/17','923449779806111511','JT4295830418779','1003','未解决','2026/5/17 14:22','时效内催件','是','15508846758'],
+['2026/5/18','9234562166901958149','JT42958281350061','1001','未解决','2026/5/18 10:15','改地址','否','176153251496'],
+['2026/5/18','923459604430565150','JT4295824931367','1003','未解决','2026/5/18 09:30','物流轨迹异常','是','15802431255']
+];
+processImportedData(demoData);
+}
+
+function initDashboard() {
+calculateStats();
+initFilters();
+renderTable();
+renderPagination();
+}
+
+function calculateStats() {
+const data = appData.rawData;
+const total = data.length;
+const connected = data.filter(d => d['回访结果'] && d['回访结果'] !== '').length;
+const resolved = data.filter(d => d['回访结果'] === '解决').length;
+const phoneGroups = {};
+data.forEach(d => { const key = d['回访手机号'] || d['运单号']; if (key) { phoneGroups[key] = (phoneGroups[key] || 0) + 1; } });
+const repeatCount = Object.values(phoneGroups).filter(c => c > 1).reduce((sum, c) => sum + c, 0);
+document.getElementById('statTotal').textContent = total;
+document.getElementById('statConnected').textContent = connected;
+document.getElementById('statConnectRate').textContent = '接通率 ' + (total ? ((connected/total)*100).toFixed(1) : 0) + '%';
+document.getElementById('statResolved').textContent = resolved;
+document.getElementById('statResolveRate').textContent = '解决率 ' + (connected ? ((resolved/connected)*100).toFixed(1) : 0) + '%';
+document.getElementById('statRepeat').textContent = repeatCount;
+document.getElementById('statRepeatRate').textContent = '重复进线率 ' + (total ? ((repeatCount/total)*100).toFixed(1) : 0) + '%';
+}
+
+function initFilters() {
+const typeSet = new Set(appData.rawData.map(d => d['问题类型']).filter(Boolean));
+const typeSelect = document.getElementById('filterType');
+if (typeSelect) {
+typeSet.forEach(type => { const opt = document.createElement('option'); opt.value = type; opt.textContent = type; typeSelect.appendChild(opt); });
+}
+}
+
+function applyFilter() {
+const type = document.getElementById('filterType').value;
+const result = document.getElementById('filterResult').value;
+const agent = document.getElementById('filterAgent').value;
+const date = document.getElementById('filterDate').value;
+appData.filteredData = appData.rawData.filter(d => {
+if (type && d['问题类型'] !== type) return false;
+if (result && d['回访结果'] !== result) return false;
+if (agent && d['会话中介'] !== agent) return false;
+if (date) { const dDate = new Date(d['日期']); const fDate = new Date(date); if (dDate.toDateString() !== fDate.toDateString()) return false; }
+return true;
+});
+appData.currentPage = 1;
+renderTable();
+renderPagination();
+}
+
+function resetFilter() {
+document.getElementById('filterType').value = '';
+document.getElementById('filterResult').value = '';
+document.getElementById('filterAgent').value = '';
+document.getElementById('filterDate').value = '';
+appData.filteredData = [...appData.rawData];
+appData.currentPage = 1;
+renderTable();
+renderPagination();
+}
+
+function sortTable(field) {
+if (appData.sortField === field) { appData.sortOrder = appData.sortOrder === 'asc' ? 'desc' : 'asc'; }
+else { appData.sortField = field; appData.sortOrder = 'asc'; }
+appData.filteredData.sort((a, b) => { const aVal = a[field] || ''; const bVal = b[field] || ''; if (appData.sortOrder === 'asc') return aVal > bVal ? 1 : -1; return aVal < bVal ? 1 : -1; });
+renderTable();
+}
+
+function renderTable() {
+const tbody = document.getElementById('tableBody');
+if (!tbody) return;
+const start = (appData.currentPage - 1) * appData.pageSize;
+const end = start + appData.pageSize;
+const pageData = appData.filteredData.slice(start, end);
+tbody.innerHTML = pageData.map(row => {
+const result = row['回访结果'] || '';
+const resultClass = result === '解决' ? 'badge-success' : result === '未解决' ? 'badge-danger' : 'badge-warning';
+return '<tr><td>' + (row['日期'] || '') + '</td><td>' + (row['会话ID'] || '') + '</td><td>' + (row['运单号'] || '') + '</td><td>' + (row['工号'] || '') + '</td><td><span class="badge ' + resultClass + '">' + result + '</span></td><td>' + (row['进线时间'] || '') + '</td><td>' + (row['问题类型'] || '') + '</td><td>' + (row['会话中介'] || '') + '</td><td>' + (row['回访手机号'] || '') + '</td></tr>';
+}).join('');
+}
+
+function renderPagination() {
+const container = document.getElementById('pagination');
+if (!container) return;
+const total = appData.filteredData.length;
+const totalPages = Math.ceil(total / appData.pageSize) || 1;
+let html = '<span class="page-info">共 ' + total + ' 条，' + appData.currentPage + '/' + totalPages + ' 页</span>';
+html += '<button onclick="changePage(-1)" ' + (appData.currentPage === 1 ? 'disabled' : '') + '>上一页</button>';
+for (let i = 1; i <= totalPages; i++) {
+if (i === 1 || i === totalPages || (i >= appData.currentPage - 2 && i <= appData.currentPage + 2)) {
+html += '<button class="' + (i === appData.currentPage ? 'active' : '') + '" onclick="goPage(' + i + ')">' + i + '</button>';
+} else if (i === appData.currentPage - 3 || i === appData.currentPage + 3) { html += '<span>...</span>'; }
+}
+html += '<button onclick="changePage(1)" ' + (appData.currentPage === totalPages ? 'disabled' : '') + '>下一页</button>';
+container.innerHTML = html;
+}
+
+function changePage(delta) {
+const totalPages = Math.ceil(appData.filteredData.length / appData.pageSize);
+appData.currentPage = Math.max(1, Math.min(totalPages, appData.currentPage + delta));
+renderTable(); renderPagination();
+}
+
+function goPage(page) { appData.currentPage = page; renderTable(); renderPagination(); }
+
+function exportData() {
+if (!appData.rawData.length) { alert('暂无数据'); return; }
+const ws = XLSX.utils.json_to_sheet(appData.rawData);
+const wb = XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb, ws, '外呼数据');
+XLSX.writeFile(wb, '逍遥峰外呼数据.xlsx');
+}
+
+function initAnalysis() {
+if (!appData.rawData.length) {
+document.getElementById('mainContent').innerHTML = '<div class="page-title">🤖 AI智能分析</div><div class="card"><div class="empty-state"><div class="icon">📭</div><p>暂无数据，请先导入数据</p><button class="btn btn-primary" onclick="renderPage(\'import\')">去导入数据</button></div></div>';
+return;
+}
+renderTypeChart(); renderResultChart(); renderRepeatAnalysis(); renderAgentEffect(); renderInsights(); renderTrendChart();
+}
+
+function renderTypeChart() {
+const ctx = document.getElementById('typeChart');
+if (!ctx) return;
+const typeCount = {};
+appData.rawData.forEach(d => { const type = d['问题类型'] || '未知'; typeCount[type] = (typeCount[type] || 0) + 1; });
+const labels = Object.keys(typeCount);
+const data = Object.values(typeCount);
+if (charts.type) charts.type.destroy();
+charts.type = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: '问题数量', data: data, backgroundColor: '#e60012', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+}
+
+function renderResultChart() {
+const ctx = document.getElementById('resultChart');
+if (!ctx) return;
+const resultCount = { '解决': 0, '未解决': 0 };
+appData.rawData.forEach(d => { const r = d['回访结果']; if (resultCount[r] !== undefined) resultCount[r]++; });
+if (charts.result) charts.result.destroy();
+charts.result = new Chart(ctx, { type: 'doughnut', data: { labels: ['解决', '未解决'], datasets: [{ data: [resultCount['解决'], resultCount['未解决']], backgroundColor: ['#52c41a', '#f5222d'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } });
+}
+
+function renderRepeatAnalysis() {
+const list = document.getElementById('repeatTypeList');
+if (!list) return;
+const typeStats = {};
+const phoneGroups = {};
+appData.rawData.forEach(d => {
+const key = d['回访手机号'] || d['运单号'];
+const type = d['问题类型'] || '未知';
+if (!key) return;
+if (!phoneGroups[key]) phoneGroups[key] = { count: 0, types: [] };
+phoneGroups[key].count++;
+phoneGroups[key].types.push(type);
+});
+Object.values(phoneGroups).forEach(group => {
+if (group.count > 1) { group.types.forEach(type => { if (!typeStats[type]) typeStats[type] = { repeat: 0, total: 0 }; typeStats[type].repeat++; }); }
+});
+appData.rawData.forEach(d => { const type = d['问题类型'] || '未知'; if (!typeStats[type]) typeStats[type] = { repeat: 0, total: 0 }; typeStats[type].total++; });
+const sorted = Object.entries(typeStats).map(([type, stats]) => ({ type, rate: stats.total ? ((stats.repeat / stats.total) * 100).toFixed(1) : 0, repeat: stats.repeat, total: stats.total })).sort((a, b) => b.rate - a.rate).slice(0, 5);
+list.innerHTML = sorted.map((item, idx) => { const rankClass = idx === 0 ? 'rank-1' : idx === 1 ? 'rank-2' : idx === 2 ? 'rank-3' : ''; return '<li><span><span class="rank ' + rankClass + '">' + (idx + 1) + '</span> ' + item.type + '</span><span>重复率 ' + item.rate + '% (' + item.repeat + '/' + item.total + ')</span></li>'; }).join('');
+}
+
+function renderAgentEffect() {
+const list = document.getElementById('agentEffectList');
+if (!list) return;
+const agentStats = {};
+appData.rawData.forEach(d => { const agent = d['工号'] || '未知'; if (!agentStats[agent]) agentStats[agent] = { total: 0, resolved: 0 }; agentStats[agent].total++; if (d['回访结果'] === '解决') agentStats[agent].resolved++; });
+const sorted = Object.entries(agentStats).map(([agent, stats]) => ({ agent, rate: stats.total ? ((stats.resolved / stats.total) * 100).toFixed(1) : 0, total: stats.total })).filter(a => a.total >= 2).sort((a, b) => b.rate - a.rate).slice(0, 5);
+list.innerHTML = sorted.map((item, idx) => { const rankClass = idx === 0 ? 'rank-1' : idx === 1 ? 'rank-2' : idx === 2 ? 'rank-3' : ''; return '<li><span><span class="rank ' + rankClass + '">' + (idx + 1) + '</span> 工号 ' + item.agent + '</span><span>解决率 ' + item.rate + '% (' + item.total + '单)</span></li>'; }).join('');
+}
+
+function renderInsights() {
+const container = document.getElementById('aiInsights');
+if (!container) return;
+const total = appData.rawData.length;
+const resolved = appData.rawData.filter(d => d['回访结果'] === '解决').length;
+const resolveRate = total ? ((resolved / total) * 100).toFixed(1) : 0;
+const typeCount = {};
+appData.rawData.forEach(d => { const type = d['问题类型'] || '未知'; typeCount[type] = (typeCount[type] || 0) + 1; });
+const topType = Object.entries(typeCount).sort((a, b) => b[1] - a[1])[0];
+container.innerHTML = '<p>1. <strong>整体解决率 ' + resolveRate + '%</strong>，其中已解决 ' + resolved + ' 单，未解决 ' + (total - resolved) + ' 单。' + (resolveRate < 70 ? '解决率偏低，建议加强回访话术培训。' : '解决率良好，保持当前策略。') + '</p><p>2. <strong>主要问题类型：' + (topType ? topType[0] : '未知') + '</strong>，占比 ' + (topType ? ((topType[1]/total)*100).toFixed(1) : 0) + '%，建议针对性优化该类问题的处理流程。</p><p>3. 外呼后重复进线的用户主要集中在<strong>时效类问题</strong>，建议外呼时明确告知用户处理时效，避免用户因不确定而反复进线。</p><p>4. 建议对解决率较低的客服进行专项辅导，提升回访沟通技巧。</p>';
+}
+
+function renderTrendChart() {
+const ctx = document.getElementById('trendChart');
+if (!ctx) return;
+const dateCount = {};
+appData.rawData.forEach(d => { const date = d['日期'] || '未知'; dateCount[date] = (dateCount[date] || 0) + 1; });
+const labels = Object.keys(dateCount).sort();
+const data = labels.map(d => dateCount[d]);
+if (charts.trend) charts.trend.destroy();
+charts.trend = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [{ label: '外呼量', data: data, borderColor: '#e60012', backgroundColor: 'rgba(230,0,18,0.1)', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#e60012' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+}
+
+function initReport() {
+if (!appData.rawData.length) {
+document.getElementById('mainContent').innerHTML = '<div class="page-title">📄 分析报告生成</div><div class="card"><div class="empty-state"><div class="icon">📭</div><p>暂无数据，请先导入数据</p><button class="btn btn-primary" onclick="renderPage(\'import\')">去导入数据</button></div></div>';
+return;
+}
+const dates = appData.rawData.map(d => d['日期']).filter(Boolean).sort();
+if (dates.length) { document.getElementById('rPeriod').value = dates[0] + ' - ' + dates[dates.length - 1]; }
+const total = appData.rawData.length;
+const resolved = appData.rawData.filter(d => d['回访结果'] === '解决').length;
+const resolveRate = total ? ((resolved / total) * 100).toFixed(1) : 0;
+const typeCount = {};
+appData.rawData.forEach(d => { const type = d['问题类型'] || '未知'; typeCount[type] = (typeCount[type] || 0) + 1; });
+const sortedTypes = Object.entries(typeCount).sort((a, b) => b[1] - a[1]);
+const defaultProblem = '本周外呼总量 ' + total + ' 单，整体解决率 ' + resolveRate + '%。主要问题：' + (sortedTypes[0] ? sortedTypes[0][0] : '未知') + '占比最高。外呼后仍有部分用户重复进线，需重点关注回访话术和问题解决闭环。';
+document.getElementById('rProblem').value = defaultProblem;
+}
+
+function generateReport() {
+const period = document.getElementById('rPeriod').value || '未填写';
+const problem = document.getElementById('rProblem').value || '';
+const strategy = document.getElementById('rStrategy').value || '';
+const target = document.getElementById('rTarget').value || '';
+const total = appData.rawData.length;
+const connected = appData.rawData.filter(d => d['回访结果'] && d['回访结果'] !== '').length;
+const connectRate = total ? ((connected / total) * 100).toFixed(1) : 0;
+const resolved = appData.rawData.filter(d => d['回访结果'] === '解决').length;
+const resolveRate = connected ? ((resolved / connected) * 100).toFixed(1) : 0;
+const phoneGroups = {};
+appData.rawData.forEach(d => { const key = d['回访手机号'] || d['运单号']; if (key) phoneGroups[key] = (phoneGroups[key] || 0) + 1; });
+const repeatCount = Object.values(phoneGroups).filter(c => c > 1).reduce((sum, c) => sum + c, 0);
+const repeatRate = total ? ((repeatCount / total) * 100).toFixed(1) : 0;
+const typeCount = {};
+appData.rawData.forEach(d => { const type = d['问题类型'] || '未知'; typeCount[type] = (typeCount[type] || 0) + 1; });
+const sortedTypes = Object.entries(typeCount).sort((a, b) => b[1] - a[1]);
+const top3 = sortedTypes.slice(0, 3).map((t, i) => (i + 1) + '. ' + t[0] + ' (' + t[1] + '单, ' + ((t[1]/total)*100).toFixed(1) + '%)').join('<br>');
+const reportHtml = '<div class="report-header"><h1>逍遥峰外呼分析报告</h1><div class="sub">J&T极兔速递 | 分析周期：' + period + '</div></div>' +
+'<div class="report-section"><h2>一、核心数据概览</h2><div class="report-metrics"><div class="report-metric"><div class="num">' + total + '</div><div class="label">总外呼数</div></div><div class="report-metric"><div class="num">' + connected + '</div><div class="label">接通量（接通率' + connectRate + '%）</div></div><div class="report-metric"><div class="num">' + resolveRate + '%</div><div class="label">解决率</div></div></div></div>' +
+'<div class="report-section"><h2>二、外呼类型TOP3</h2><p>' + top3 + '</p></div>' +
+'<div class="report-section"><h2>三、再次进线率</h2><p>外呼后再次进线数：' + repeatCount + ' 单，重复进线率 ' + repeatRate + '%。' + (repeatRate > 20 ? '重复进线率偏高，需重点优化回访话术和问题解决闭环。' : '重复进线率控制在合理范围。') + '</p></div>' +
+'<div class="report-section"><h2>四、当前问题</h2><p>' + problem.replace(/\n/g, '<br>') + '</p></div>' +
+'<div class="report-section"><h2>五、改进策略</h2><p>' + (strategy ? strategy.replace(/\n/g, '<br>') : '待补充') + '</p></div>' +
+'<div class="report-section"><h2>六、下周目标</h2><p>' + (target ? target.replace(/\n/g, '<br>') : '待补充') + '</p></div>';
+document.getElementById('reportPreview').innerHTML = reportHtml;
+}
+
+function exportReport() {
+const preview = document.getElementById('reportPreview');
+if (!preview || preview.querySelector('.empty-state')) { alert('请先生成报告'); return; }
+const html = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>逍遥峰外呼分析报告</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:#f5f5f5;padding:40px 20px;}.report-preview{background:#fff;border-radius:8px;padding:40px;max-width:900px;margin:0 auto;box-shadow:0 2px 12px rgba(0,0,0,0.1);}.report-header{text-align:center;border-bottom:3px solid #e60012;padding-bottom:20px;margin-bottom:30px;}.report-header h1{font-size:24px;color:#1a1a1a;margin-bottom:10px;}.report-header .sub{color:#666;font-size:14px;}.report-section{margin-bottom:25px;}.report-section h2{font-size:16px;color:#e60012;border-left:4px solid #e60012;padding-left:10px;margin-bottom:12px;}.report-section p{font-size:14px;line-height:1.8;color:#333;text-indent:2em;}.report-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin:15px 0;}.report-metric{text-align:center;padding:15px;background:#f8f9fa;border-radius:6px;}.report-metric .num{font-size:28px;font-weight:bold;color:#e60012;}.report-metric .label{font-size:13px;color:#666;margin-top:5px;}</style></head><body>' + preview.innerHTML + '</body></html>';
+const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+const link = document.createElement('a');
+link.href = URL.createObjectURL(blob);
+link.download = '逍遥峰外呼分析报告.html';
+link.click();
+}
+
+function printReport() { window.print(); }
+
+function downloadTemplate() {
+const templateData = [['日期','会话ID','运单号','工号','回访结果','进线时间','问题类型','会话中介','回访手机号']];
+const ws = XLSX.utils.aoa_to_sheet(templateData);
+const wb = XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb, ws, '外呼模板');
+XLSX.writeFile(wb, '外呼数据导入模板.xlsx');
+}
+</script>
+</body>
+</html>
+
+
